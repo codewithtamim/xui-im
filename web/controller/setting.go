@@ -22,9 +22,10 @@ type updateUserForm struct {
 
 // SettingController handles settings and user management operations.
 type SettingController struct {
-	settingService service.SettingService
-	userService    service.UserService
-	panelService   service.PanelService
+	settingService   service.SettingService
+	userService      service.UserService
+	panelService     service.PanelService
+	apiKeyController *ApiKeyController
 }
 
 // NewSettingController creates a new SettingController and initializes its routes.
@@ -44,9 +45,17 @@ func (a *SettingController) initRouter(g *gin.RouterGroup) {
 	g.POST("/updateUser", a.updateUser)
 	g.POST("/restartPanel", a.restartPanel)
 	g.GET("/getDefaultJsonConfig", a.getDefaultXrayConfig)
+
+	a.apiKeyController = NewApiKeyController(g)
 }
 
 // getAllSetting retrieves all current settings.
+// @Summary Get all settings
+// @Tags Setting
+// @Produce json
+// @Success 200 {object} entity.Msg
+// @Security ApiKeyAuth
+// @Router /panel/setting/all [post]
 func (a *SettingController) getAllSetting(c *gin.Context) {
 	allSetting, err := a.settingService.GetAllSetting()
 	if err != nil {
@@ -67,6 +76,13 @@ func (a *SettingController) getDefaultSettings(c *gin.Context) {
 }
 
 // updateSetting updates all settings with the provided data.
+// @Summary Update all settings
+// @Tags Setting
+// @Accept json
+// @Produce json
+// @Success 200 {object} entity.Msg
+// @Security ApiKeyAuth
+// @Router /panel/setting/update [post]
 func (a *SettingController) updateSetting(c *gin.Context) {
 	allSetting := &entity.AllSetting{}
 	err := c.ShouldBind(allSetting)

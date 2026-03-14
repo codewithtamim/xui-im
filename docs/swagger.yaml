@@ -1,0 +1,486 @@
+basePath: /
+definitions:
+  controller.createApiKeyForm:
+    properties:
+      description:
+        type: string
+      expiryTime:
+        type: integer
+    required:
+    - description
+    type: object
+  entity.Msg:
+    properties:
+      msg:
+        description: Response message text
+        type: string
+      obj:
+        description: Optional data object
+      success:
+        description: Indicates if the operation was successful
+        type: boolean
+    type: object
+info:
+  contact:
+    name: 3X-UI
+  description: API for managing the 3X-UI panel including inbounds, server, and settings.
+  license:
+    name: GPL-3.0
+  title: 3X-UI Panel API
+  version: "2.0"
+paths:
+  /panel/api/inbounds/{id}/delClient/{clientId}:
+    post:
+      parameters:
+      - description: Inbound ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Client ID
+        in: path
+        name: clientId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Msg'
+      security:
+      - ApiKeyAuth: []
+      summary: Delete client from inbound
+      tags:
+      - Inbound
+  /panel/api/inbounds/{id}/resetClientTraffic/{email}:
+    post:
+      parameters:
+      - description: Inbound ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Client email
+        in: path
+        name: email
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Msg'
+      security:
+      - ApiKeyAuth: []
+      summary: Reset client traffic
+      tags:
+      - Inbound
+  /panel/api/inbounds/add:
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Msg'
+      security:
+      - ApiKeyAuth: []
+      summary: Add a new inbound
+      tags:
+      - Inbound
+  /panel/api/inbounds/addClient:
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Msg'
+      security:
+      - ApiKeyAuth: []
+      summary: Add client to inbound
+      tags:
+      - Inbound
+  /panel/api/inbounds/clientIps/{email}:
+    post:
+      parameters:
+      - description: Client email
+        in: path
+        name: email
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Msg'
+      security:
+      - ApiKeyAuth: []
+      summary: Get client IPs
+      tags:
+      - Inbound
+  /panel/api/inbounds/del/{id}:
+    post:
+      parameters:
+      - description: Inbound ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Msg'
+      security:
+      - ApiKeyAuth: []
+      summary: Delete an inbound
+      tags:
+      - Inbound
+  /panel/api/inbounds/get/{id}:
+    get:
+      parameters:
+      - description: Inbound ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Msg'
+      security:
+      - ApiKeyAuth: []
+      summary: Get inbound by ID
+      tags:
+      - Inbound
+  /panel/api/inbounds/getClientTraffics/{email}:
+    get:
+      parameters:
+      - description: Client email
+        in: path
+        name: email
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Msg'
+      security:
+      - ApiKeyAuth: []
+      summary: Get client traffics by email
+      tags:
+      - Inbound
+  /panel/api/inbounds/getClientTrafficsById/{id}:
+    get:
+      parameters:
+      - description: Client ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Msg'
+      security:
+      - ApiKeyAuth: []
+      summary: Get client traffics by ID
+      tags:
+      - Inbound
+  /panel/api/inbounds/list:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Msg'
+      security:
+      - ApiKeyAuth: []
+      summary: List all inbounds
+      tags:
+      - Inbound
+  /panel/api/inbounds/onlines:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Msg'
+      security:
+      - ApiKeyAuth: []
+      summary: Get online clients
+      tags:
+      - Inbound
+  /panel/api/inbounds/resetAllTraffics:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Msg'
+      security:
+      - ApiKeyAuth: []
+      summary: Reset all traffics
+      tags:
+      - Inbound
+  /panel/api/inbounds/update/{id}:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Inbound ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Msg'
+      security:
+      - ApiKeyAuth: []
+      summary: Update an inbound
+      tags:
+      - Inbound
+  /panel/api/inbounds/updateClient/{clientId}:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Client ID
+        in: path
+        name: clientId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Msg'
+      security:
+      - ApiKeyAuth: []
+      summary: Update inbound client
+      tags:
+      - Inbound
+  /panel/api/server/getConfigJson:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Msg'
+      security:
+      - ApiKeyAuth: []
+      summary: Get Xray config JSON
+      tags:
+      - Server
+  /panel/api/server/getDb:
+    get:
+      produces:
+      - application/octet-stream
+      responses:
+        "200":
+          description: OK
+      security:
+      - ApiKeyAuth: []
+      summary: Download database backup
+      tags:
+      - Server
+  /panel/api/server/getXrayVersion:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Msg'
+      security:
+      - ApiKeyAuth: []
+      summary: Get Xray versions
+      tags:
+      - Server
+  /panel/api/server/restartXrayService:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Msg'
+      security:
+      - ApiKeyAuth: []
+      summary: Restart Xray service
+      tags:
+      - Server
+  /panel/api/server/status:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Msg'
+      security:
+      - ApiKeyAuth: []
+      summary: Get server status
+      tags:
+      - Server
+  /panel/api/server/stopXrayService:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Msg'
+      security:
+      - ApiKeyAuth: []
+      summary: Stop Xray service
+      tags:
+      - Server
+  /panel/setting/all:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Msg'
+      security:
+      - ApiKeyAuth: []
+      summary: Get all settings
+      tags:
+      - Setting
+  /panel/setting/apikeys/create:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: API key details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/controller.createApiKeyForm'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Msg'
+      summary: Create a new API key
+      tags:
+      - ApiKey
+  /panel/setting/apikeys/delete/{id}:
+    post:
+      parameters:
+      - description: API Key ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Msg'
+      summary: Delete an API key
+      tags:
+      - ApiKey
+  /panel/setting/apikeys/list:
+    post:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Msg'
+      summary: List all API keys
+      tags:
+      - ApiKey
+  /panel/setting/apikeys/toggle/{id}:
+    post:
+      parameters:
+      - description: API Key ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Msg'
+      summary: Toggle an API key enabled/disabled
+      tags:
+      - ApiKey
+  /panel/setting/update:
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Msg'
+      security:
+      - ApiKeyAuth: []
+      summary: Update all settings
+      tags:
+      - Setting
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: X-API-Key
+    type: apiKey
+swagger: "2.0"

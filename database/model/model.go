@@ -104,6 +104,16 @@ type Setting struct {
 	Value string `json:"value" form:"value"`
 }
 
+// ApiKey stores API keys for token-based authentication to the panel API.
+type ApiKey struct {
+	Id          int    `json:"id" gorm:"primaryKey;autoIncrement"`
+	Key         string `json:"key" gorm:"unique"`
+	Description string `json:"description"`
+	ExpiryTime  int64  `json:"expiryTime"`            // unix ms, 0 = indefinite
+	Enabled     bool   `json:"enabled" gorm:"default:true"`
+	CreatedAt   int64  `json:"createdAt"`
+}
+
 // Client represents a client configuration for Xray inbounds with traffic limits and settings.
 type Client struct {
 	ID         string `json:"id"`                           // Unique client identifier

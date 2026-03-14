@@ -89,6 +89,13 @@
                     </template>
                     {{ template "settings/panel/subscription/json" . }}
                   </a-tab-pane>
+                  <a-tab-pane key="6" :style="{ paddingTop: '20px' }">
+                    <template #tab>
+                      <a-icon type="key"></a-icon>
+                      <span>{{ i18n "pages.settings.apiKeysTab" }}</span>
+                    </template>
+                    {{ template "settings/panel/apikeys" . }}
+                  </a-tab-pane>
                 </a-tabs>
               </a-col>
             </a-row>
@@ -131,6 +138,16 @@
       remarkSeparators: [' ', '-', '_', '@', ':', '~', '|', ',', '.', '/'],
       datepickerList: [{ name: 'Gregorian (Standard)', value: 'gregorian' }, { name: 'Jalalian (شمسی)', value: 'jalalian' }],
       remarkSample: '',
+      apiKeys: [],
+      newApiKeyDesc: '',
+      newApiKeyExpiry: 0,
+      apiKeyColumns: [
+        { title: '{{ i18n "pages.settings.apiKeys.descriptionLabel" }}', dataIndex: 'description', scopedSlots: { customRender: 'description' } },
+        { title: '{{ i18n "pages.settings.apiKeys.key" }}', dataIndex: 'key', scopedSlots: { customRender: 'key' } },
+        { title: '{{ i18n "pages.settings.apiKeys.expiry" }}', dataIndex: 'expiryTime', scopedSlots: { customRender: 'expiryTime' } },
+        { title: '{{ i18n "status" }}', dataIndex: 'enabled', scopedSlots: { customRender: 'enabled' } },
+        { title: '{{ i18n "pages.settings.apiKeys.actions" }}', scopedSlots: { customRender: 'actions' } },
+      ],
       defaultFragment: {
         tag: "fragment",
         protocol: "freedom",
@@ -294,6 +311,45 @@
         if (msg.success) {
           await this.getAllSetting();
         }
+      },
+      async loadApiKeys() {
+        const msg = await HttpUtil.post("/panel/setting/apikeys/list");
+        if (msg.success) {
+          this.apiKeys = (msg.obj || []).map(k => ({ ...k, _visible: false }));
+        }
+      },
+      async createApiKey() {
+        if (!this.newApiKeyDesc) return;
+        let expiryTime = 0;
+        if (this.newApiKeyExpiry > 0) {
+          expiryTime = Date.now() + this.newApiKeyExpiry * 86400000;
+        }
+        const msg = await HttpUtil.post("/panel/setting/apikeys/create", {
+          description: this.newApiKeyDesc,
+          expiryTime: expiryTime,
+        });
+        if (msg.success) {
+          this.newApiKeyDesc = '';
+          this.newApiKeyExpiry = 0;
+          await this.loadApiKeys();
+        }
+      },
+      async deleteApiKey(id) {
+        const msg = await HttpUtil.post("/panel/setting/apikeys/delete/" + id);
+        if (msg.success) {
+          await this.loadApiKeys();
+        }
+      },
+      async toggleApiKey(id) {
+        const msg = await HttpUtil.post("/panel/setting/apikeys/toggle/" + id);
+        if (msg.success) {
+          await this.loadApiKeys();
+        }
+      },
+      copyApiKey(key) {
+        navigator.clipboard.writeText(key).then(() => {
+          this.$message.success('{{ i18n "pages.settings.apiKeys.copySuccess" }}');
+        });
       },
       async updateUser() {
         const sendUpdateUserRequest = async () => {
@@ -627,6 +683,7 @@
       this.entryProtocol = window.location.protocol;
       this.entryIsIP = this._isIp(this.entryHost);
       await this.getAllSetting();
+      await this.loadApiKeys();
       await this.loadInboundTags();
       while (true) {
         await PromiseUtil.sleep(1000);

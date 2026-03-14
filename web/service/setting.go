@@ -102,6 +102,9 @@ var defaultValueMap = map[string]string{
 	"ldapDefaultTotalGB":    "0",
 	"ldapDefaultExpiryDays": "0",
 	"ldapDefaultLimitIP":    "0",
+
+	// API documentation
+	"swaggerEnable": "false",
 }
 
 // SettingService provides business logic for application settings management.
@@ -686,6 +689,10 @@ func (s *SettingService) GetLdapDefaultExpiryDays() (int, error) {
 
 func (s *SettingService) GetLdapDefaultLimitIP() (int, error) {
 	return s.getInt("ldapDefaultLimitIP")
+}
+
+func (s *SettingService) GetSwaggerEnable() (bool, error) {
+	return s.getBool("swaggerEnable")
 }
 
 func (s *SettingService) UpdateAllSetting(allSetting *entity.AllSetting) error {

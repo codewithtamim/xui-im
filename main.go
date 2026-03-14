@@ -1,5 +1,15 @@
 // Package main is the entry point for the 3x-ui web panel application.
 // It initializes the database, web server, and handles command-line operations for managing the panel.
+//
+// @title 3X-UI Panel API
+// @version 2.0
+// @description API for managing the 3X-UI panel including inbounds, server, and settings.
+// @contact.name 3X-UI
+// @license.name GPL-3.0
+// @BasePath /
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name X-API-Key
 package main
 
 import (

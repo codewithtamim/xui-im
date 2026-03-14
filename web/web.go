@@ -32,6 +32,8 @@ import (
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	"github.com/robfig/cron/v3"
+
+	_ "github.com/mhsanaei/3x-ui/v2/docs"
 )
 
 //go:embed assets
@@ -268,7 +270,8 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 
 	s.index = controller.NewIndexController(g)
 	s.panel = controller.NewXUIController(g)
-	s.api = controller.NewAPIController(g)
+	swaggerEnabled, _ := s.settingService.GetSwaggerEnable()
+	s.api = controller.NewAPIController(g, swaggerEnabled)
 
 	// Initialize WebSocket hub
 	s.wsHub = websocket.NewHub()

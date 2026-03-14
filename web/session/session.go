@@ -15,6 +15,10 @@ import (
 const (
 	loginUserKey = "LOGIN_USER"
 	defaultPath  = "/"
+
+	// APIUserKey is the gin context key for the user when authenticated via X-API-Key.
+	// Used when there is no session (e.g. API key auth) so handlers can still get the user.
+	APIUserKey = "API_USER"
 )
 
 func init() {
@@ -43,21 +47,25 @@ func SetMaxAge(c *gin.Context, maxAge int) {
 	})
 }
 
-// GetLoginUser retrieves the authenticated user from the session.
-// Returns nil if no user is logged in or if the session data is invalid.
+// GetLoginUser retrieves the authenticated user from the session or from API key context.
+// Returns nil if no user is logged in or if the session/context data is invalid.
 func GetLoginUser(c *gin.Context) *model.User {
 	s := sessions.Default(c)
 	obj := s.Get(loginUserKey)
-	if obj == nil {
-		return nil
-	}
-	user, ok := obj.(model.User)
-	if !ok {
-
+	if obj != nil {
+		user, ok := obj.(model.User)
+		if ok {
+			return &user
+		}
 		s.Delete(loginUserKey)
-		return nil
 	}
-	return &user
+	// Fallback: user set by API key auth middleware (no session)
+	if u, exists := c.Get(APIUserKey); exists && u != nil {
+		if user, ok := u.(*model.User); ok {
+			return user
+		}
+	}
+	return nil
 }
 
 // IsLogin checks if a user is currently authenticated in the session.

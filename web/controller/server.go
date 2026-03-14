@@ -85,6 +85,12 @@ func (a *ServerController) startTask() {
 }
 
 // status returns the current server status information.
+// @Summary Get server status
+// @Tags Server
+// @Produce json
+// @Success 200 {object} entity.Msg
+// @Security ApiKeyAuth
+// @Router /panel/api/server/status [get]
 func (a *ServerController) status(c *gin.Context) { jsonObj(c, a.lastStatus, nil) }
 
 // getCpuHistoryBucket retrieves aggregated CPU usage history based on the specified time bucket.
@@ -112,6 +118,12 @@ func (a *ServerController) getCpuHistoryBucket(c *gin.Context) {
 }
 
 // getXrayVersion retrieves available Xray versions, with caching for 1 minute.
+// @Summary Get Xray versions
+// @Tags Server
+// @Produce json
+// @Success 200 {object} entity.Msg
+// @Security ApiKeyAuth
+// @Router /panel/api/server/getXrayVersion [get]
 func (a *ServerController) getXrayVersion(c *gin.Context) {
 	now := time.Now().Unix()
 	if now-a.lastGetVersionsTime <= 60 { // 1 minute cache
@@ -154,6 +166,12 @@ func (a *ServerController) updateGeofile(c *gin.Context) {
 }
 
 // stopXrayService stops the Xray service.
+// @Summary Stop Xray service
+// @Tags Server
+// @Produce json
+// @Success 200 {object} entity.Msg
+// @Security ApiKeyAuth
+// @Router /panel/api/server/stopXrayService [post]
 func (a *ServerController) stopXrayService(c *gin.Context) {
 	err := a.serverService.StopXrayService()
 	if err != nil {
@@ -171,6 +189,12 @@ func (a *ServerController) stopXrayService(c *gin.Context) {
 }
 
 // restartXrayService restarts the Xray service.
+// @Summary Restart Xray service
+// @Tags Server
+// @Produce json
+// @Success 200 {object} entity.Msg
+// @Security ApiKeyAuth
+// @Router /panel/api/server/restartXrayService [post]
 func (a *ServerController) restartXrayService(c *gin.Context) {
 	err := a.serverService.RestartXrayService()
 	if err != nil {
@@ -242,6 +266,12 @@ func (a *ServerController) getXrayLogs(c *gin.Context) {
 }
 
 // getConfigJson retrieves the Xray configuration as JSON.
+// @Summary Get Xray config JSON
+// @Tags Server
+// @Produce json
+// @Success 200 {object} entity.Msg
+// @Security ApiKeyAuth
+// @Router /panel/api/server/getConfigJson [get]
 func (a *ServerController) getConfigJson(c *gin.Context) {
 	configJson, err := a.serverService.GetConfigJson()
 	if err != nil {
@@ -252,6 +282,12 @@ func (a *ServerController) getConfigJson(c *gin.Context) {
 }
 
 // getDb downloads the database file.
+// @Summary Download database backup
+// @Tags Server
+// @Produce octet-stream
+// @Success 200
+// @Security ApiKeyAuth
+// @Router /panel/api/server/getDb [get]
 func (a *ServerController) getDb(c *gin.Context) {
 	db, err := a.serverService.GetDb()
 	if err != nil {

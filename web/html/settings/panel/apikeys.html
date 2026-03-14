@@ -1,0 +1,92 @@
+{{define "settings/panel/apikeys"}}
+<a-collapse default-active-key="1">
+    <a-collapse-panel key="1" header='{{ i18n "pages.settings.apiKeys.create" }}'>
+        <a-space direction="vertical" :style="{ width: '100%' }">
+            <a-setting-list-item paddings="small">
+                <template #title>{{ i18n "pages.settings.apiKeys.descriptionLabel" }}</template>
+                <template #control>
+                    <a-input v-model="newApiKeyDesc" placeholder='{{ i18n "pages.settings.apiKeys.descriptionLabel" }}'></a-input>
+                </template>
+            </a-setting-list-item>
+            <a-setting-list-item paddings="small">
+                <template #title>{{ i18n "pages.settings.apiKeys.expiry" }}</template>
+                <template #control>
+                    <a-select v-model="newApiKeyExpiry" :style="{ width: '100%' }" :dropdown-class-name="themeSwitcher.currentTheme">
+                        <a-select-option :value="0">{{ i18n "pages.settings.apiKeys.indefinite" }}</a-select-option>
+                        <a-select-option :value="1">1 {{ i18n "day" }}</a-select-option>
+                        <a-select-option :value="7">7 {{ i18n "day" }}s</a-select-option>
+                        <a-select-option :value="30">30 {{ i18n "day" }}s</a-select-option>
+                        <a-select-option :value="90">90 {{ i18n "day" }}s</a-select-option>
+                        <a-select-option :value="365">365 {{ i18n "day" }}s</a-select-option>
+                    </a-select>
+                </template>
+            </a-setting-list-item>
+            <a-list-item>
+                <a-space direction="horizontal" :style="{ padding: '0 20px' }">
+                    <a-button type="primary" @click="createApiKey" :disabled="!newApiKeyDesc">{{ i18n "pages.settings.apiKeys.create" }}</a-button>
+                </a-space>
+            </a-list-item>
+        </a-space>
+    </a-collapse-panel>
+    <a-collapse-panel key="2" header='{{ i18n "pages.settings.apiKeys.key" }}s'>
+        <a-table :columns="apiKeyColumns" :data-source="apiKeys" :pagination="false" row-key="id" size="small"
+            :locale="{ emptyText: '{{ i18n "pages.settings.apiKeys.noKeys" }}' }">
+            <template slot="description" slot-scope="text">
+                [[ text ]]
+            </template>
+            <template slot="key" slot-scope="text, record">
+                <a-space>
+                    <span :style="{ fontFamily: 'monospace', fontSize: '12px', minWidth: '48ch', display: 'inline-block', wordBreak: 'break-all' }">
+                        <span v-if="record._visible">[[ text ]]</span>
+                        <span v-else>sk-[[ '*'.repeat(45) ]]</span>
+                    </span>
+                    <a-button size="small" shape="circle" @click="record._visible = !record._visible">
+                        <a-icon :type="record._visible ? 'eye-invisible' : 'eye'"></a-icon>
+                    </a-button>
+                    <a-button size="small" shape="circle" @click="copyApiKey(text)">
+                        <a-icon type="copy"></a-icon>
+                    </a-button>
+                </a-space>
+            </template>
+            <template slot="expiryTime" slot-scope="text">
+                <span v-if="text === 0">{{ i18n "pages.settings.apiKeys.indefinite" }}</span>
+                <span v-else>[[ moment(text).format("YYYY-MM-DD HH:mm") ]]</span>
+            </template>
+            <template slot="enabled" slot-scope="text">
+                <a-badge v-if="text" status="success" text='{{ i18n "enabled" }}'></a-badge>
+                <a-badge v-else status="error" text='{{ i18n "disabled" }}'></a-badge>
+            </template>
+            <template slot="actions" slot-scope="text, record">
+                <a-space>
+                    <a-button size="small" :type="record.enabled ? 'default' : 'primary'" @click="toggleApiKey(record.id)">
+                        <a-icon :type="record.enabled ? 'pause-circle' : 'play-circle'"></a-icon>
+                    </a-button>
+                    <a-popconfirm title='{{ i18n "pages.settings.apiKeys.deleteConfirm" }}' @confirm="deleteApiKey(record.id)"
+                        ok-text='{{ i18n "sure" }}' cancel-text='{{ i18n "cancel" }}'
+                        :overlay-class-name="themeSwitcher.currentTheme">
+                        <a-button size="small" type="danger">
+                            <a-icon type="delete"></a-icon>
+                        </a-button>
+                    </a-popconfirm>
+                </a-space>
+            </template>
+        </a-table>
+    </a-collapse-panel>
+    <a-collapse-panel key="3" header='{{ i18n "pages.settings.apiKeys.apiDocs" }}'>
+        <a-setting-list-item paddings="small">
+            <template #title>{{ i18n "pages.settings.apiKeys.swaggerEnable" }}</template>
+            <template #description>{{ i18n "pages.settings.apiKeys.swaggerEnableDesc" }}</template>
+            <template #control>
+                <a-switch v-model="allSetting.swaggerEnable"></a-switch>
+            </template>
+        </a-setting-list-item>
+        <a-list-item v-if="allSetting.swaggerEnable">
+            <a-space direction="horizontal" :style="{ padding: '0 20px' }">
+                <a-button type="primary" icon="link" @click="window.open(basePath + 'panel/api/docs/index.html', '_blank')">
+                    {{ i18n "pages.settings.apiKeys.viewDocs" }}
+                </a-button>
+            </a-space>
+        </a-list-item>
+    </a-collapse-panel>
+</a-collapse>
+{{end}}

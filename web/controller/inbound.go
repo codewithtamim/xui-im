@@ -55,6 +55,12 @@ func (a *InboundController) initRouter(g *gin.RouterGroup) {
 }
 
 // getInbounds retrieves the list of inbounds for the logged-in user.
+// @Summary List all inbounds
+// @Tags Inbound
+// @Produce json
+// @Success 200 {object} entity.Msg
+// @Security ApiKeyAuth
+// @Router /panel/api/inbounds/list [get]
 func (a *InboundController) getInbounds(c *gin.Context) {
 	user := session.GetLoginUser(c)
 	inbounds, err := a.inboundService.GetInbounds(user.Id)
@@ -66,6 +72,13 @@ func (a *InboundController) getInbounds(c *gin.Context) {
 }
 
 // getInbound retrieves a specific inbound by its ID.
+// @Summary Get inbound by ID
+// @Tags Inbound
+// @Produce json
+// @Param id path int true "Inbound ID"
+// @Success 200 {object} entity.Msg
+// @Security ApiKeyAuth
+// @Router /panel/api/inbounds/get/{id} [get]
 func (a *InboundController) getInbound(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -81,6 +94,13 @@ func (a *InboundController) getInbound(c *gin.Context) {
 }
 
 // getClientTraffics retrieves client traffic information by email.
+// @Summary Get client traffics by email
+// @Tags Inbound
+// @Produce json
+// @Param email path string true "Client email"
+// @Success 200 {object} entity.Msg
+// @Security ApiKeyAuth
+// @Router /panel/api/inbounds/getClientTraffics/{email} [get]
 func (a *InboundController) getClientTraffics(c *gin.Context) {
 	email := c.Param("email")
 	clientTraffics, err := a.inboundService.GetClientTrafficByEmail(email)
@@ -92,6 +112,13 @@ func (a *InboundController) getClientTraffics(c *gin.Context) {
 }
 
 // getClientTrafficsById retrieves client traffic information by inbound ID.
+// @Summary Get client traffics by ID
+// @Tags Inbound
+// @Produce json
+// @Param id path string true "Client ID"
+// @Success 200 {object} entity.Msg
+// @Security ApiKeyAuth
+// @Router /panel/api/inbounds/getClientTrafficsById/{id} [get]
 func (a *InboundController) getClientTrafficsById(c *gin.Context) {
 	id := c.Param("id")
 	clientTraffics, err := a.inboundService.GetClientTrafficByID(id)
@@ -103,6 +130,13 @@ func (a *InboundController) getClientTrafficsById(c *gin.Context) {
 }
 
 // addInbound creates a new inbound configuration.
+// @Summary Add a new inbound
+// @Tags Inbound
+// @Accept json
+// @Produce json
+// @Success 200 {object} entity.Msg
+// @Security ApiKeyAuth
+// @Router /panel/api/inbounds/add [post]
 func (a *InboundController) addInbound(c *gin.Context) {
 	inbound := &model.Inbound{}
 	err := c.ShouldBind(inbound)
@@ -133,6 +167,13 @@ func (a *InboundController) addInbound(c *gin.Context) {
 }
 
 // delInbound deletes an inbound configuration by its ID.
+// @Summary Delete an inbound
+// @Tags Inbound
+// @Produce json
+// @Param id path int true "Inbound ID"
+// @Success 200 {object} entity.Msg
+// @Security ApiKeyAuth
+// @Router /panel/api/inbounds/del/{id} [post]
 func (a *InboundController) delInbound(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -155,6 +196,14 @@ func (a *InboundController) delInbound(c *gin.Context) {
 }
 
 // updateInbound updates an existing inbound configuration.
+// @Summary Update an inbound
+// @Tags Inbound
+// @Accept json
+// @Produce json
+// @Param id path int true "Inbound ID"
+// @Success 200 {object} entity.Msg
+// @Security ApiKeyAuth
+// @Router /panel/api/inbounds/update/{id} [post]
 func (a *InboundController) updateInbound(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -185,6 +234,13 @@ func (a *InboundController) updateInbound(c *gin.Context) {
 }
 
 // getClientIps retrieves the IP addresses associated with a client by email.
+// @Summary Get client IPs
+// @Tags Inbound
+// @Produce json
+// @Param email path string true "Client email"
+// @Success 200 {object} entity.Msg
+// @Security ApiKeyAuth
+// @Router /panel/api/inbounds/clientIps/{email} [post]
 func (a *InboundController) getClientIps(c *gin.Context) {
 	email := c.Param("email")
 
@@ -241,6 +297,13 @@ func (a *InboundController) clearClientIps(c *gin.Context) {
 }
 
 // addInboundClient adds a new client to an existing inbound.
+// @Summary Add client to inbound
+// @Tags Inbound
+// @Accept json
+// @Produce json
+// @Success 200 {object} entity.Msg
+// @Security ApiKeyAuth
+// @Router /panel/api/inbounds/addClient [post]
 func (a *InboundController) addInboundClient(c *gin.Context) {
 	data := &model.Inbound{}
 	err := c.ShouldBind(data)
@@ -261,6 +324,14 @@ func (a *InboundController) addInboundClient(c *gin.Context) {
 }
 
 // delInboundClient deletes a client from an inbound by inbound ID and client ID.
+// @Summary Delete client from inbound
+// @Tags Inbound
+// @Produce json
+// @Param id path int true "Inbound ID"
+// @Param clientId path string true "Client ID"
+// @Success 200 {object} entity.Msg
+// @Security ApiKeyAuth
+// @Router /panel/api/inbounds/{id}/delClient/{clientId} [post]
 func (a *InboundController) delInboundClient(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -281,6 +352,14 @@ func (a *InboundController) delInboundClient(c *gin.Context) {
 }
 
 // updateInboundClient updates a client's configuration in an inbound.
+// @Summary Update inbound client
+// @Tags Inbound
+// @Accept json
+// @Produce json
+// @Param clientId path string true "Client ID"
+// @Success 200 {object} entity.Msg
+// @Security ApiKeyAuth
+// @Router /panel/api/inbounds/updateClient/{clientId} [post]
 func (a *InboundController) updateInboundClient(c *gin.Context) {
 	clientId := c.Param("clientId")
 
@@ -303,6 +382,14 @@ func (a *InboundController) updateInboundClient(c *gin.Context) {
 }
 
 // resetClientTraffic resets the traffic counter for a specific client in an inbound.
+// @Summary Reset client traffic
+// @Tags Inbound
+// @Produce json
+// @Param id path int true "Inbound ID"
+// @Param email path string true "Client email"
+// @Success 200 {object} entity.Msg
+// @Security ApiKeyAuth
+// @Router /panel/api/inbounds/{id}/resetClientTraffic/{email} [post]
 func (a *InboundController) resetClientTraffic(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -323,6 +410,12 @@ func (a *InboundController) resetClientTraffic(c *gin.Context) {
 }
 
 // resetAllTraffics resets all traffic counters across all inbounds.
+// @Summary Reset all traffics
+// @Tags Inbound
+// @Produce json
+// @Success 200 {object} entity.Msg
+// @Security ApiKeyAuth
+// @Router /panel/api/inbounds/resetAllTraffics [post]
 func (a *InboundController) resetAllTraffics(c *gin.Context) {
 	err := a.inboundService.ResetAllTraffics()
 	if err != nil {
@@ -398,6 +491,12 @@ func (a *InboundController) delDepletedClients(c *gin.Context) {
 }
 
 // onlines retrieves the list of currently online clients.
+// @Summary Get online clients
+// @Tags Inbound
+// @Produce json
+// @Success 200 {object} entity.Msg
+// @Security ApiKeyAuth
+// @Router /panel/api/inbounds/onlines [post]
 func (a *InboundController) onlines(c *gin.Context) {
 	jsonObj(c, a.inboundService.GetOnlineClients(), nil)
 }
