@@ -1,0 +1,100 @@
+name: Upstream sync
+
+on:
+  workflow_dispatch:
+    inputs:
+      note:
+        description: Optional — shown in the log for this run only
+        required: false
+        default: ""
+        type: string
+  schedule:
+
+    - cron: "0 6 * * 1"
+
+concurrency:
+  group: upstream-sync
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  UPSTREAM_URL: https://github.com/MHSanaei/3x-ui.git
+  UPSTREAM_REF: main
+  BASE_BRANCH: main
+  SYNC_BRANCH: sync/upstream
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Manual run (workflow_dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          NOTE: ${{ github.event.inputs.note }}
+        run: |
+          echo "Triggered manually from the Actions tab (Run workflow)."
+          if [ -n "$NOTE" ]; then printf 'Note: %s\n' "$NOTE"; fi
+
+      - name: Checkout fork
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ env.BASE_BRANCH }}
+          fetch-depth: 0
+          token: ${{ secrets.SYNC_PAT || github.token }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch upstream
+        run: |
+          git remote add upstream "$UPSTREAM_URL"
+          git fetch upstream "$UPSTREAM_REF"
+
+      - name: Skip if fork already contains upstream
+        id: up_to_date
+        run: |
+          if git merge-base --is-ancestor "upstream/${UPSTREAM_REF}" "${BASE_BRANCH}"; then
+            echo "Fork ${BASE_BRANCH} already contains MHSanaei/3x-ui ${UPSTREAM_REF} — nothing to do."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Reset sync branch to upstream
+        if: steps.up_to_date.outputs.skip != 'true'
+        run: |
+          git checkout -B "$SYNC_BRANCH" "upstream/${UPSTREAM_REF}"
+          git push -f origin "$SYNC_BRANCH"
+
+      - name: Create pull request (if none open)
+        if: steps.up_to_date.outputs.skip != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.SYNC_PAT || github.token }}
+        run: |
+          count="$(gh pr list --head "$SYNC_BRANCH" --state open --json number -q 'length' --repo "$GITHUB_REPOSITORY")"
+          if [ "$count" -gt 0 ]; then
+            echo "Open PR already exists for $SYNC_BRANCH; branch was updated on push."
+            exit 0
+          fi
+          enc_head="${SYNC_BRANCH//\//%2F}"
+          compare="https://github.com/${GITHUB_REPOSITORY}/compare/${BASE_BRANCH}...${enc_head}"
+          body_file="$(mktemp)"
+          {
+            printf 'Brings in changes from [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui) `%s` into `%s`.\n\n' \
+              "$UPSTREAM_REF" "$BASE_BRANCH"
+            printf -- '- Compare: [%s...%s](%s)\n\n' \
+              "$BASE_BRANCH" "$SYNC_BRANCH" "$compare"
+            printf 'If GitHub shows merge conflicts, resolve them in this PR before merging.\n'
+          } > "$body_file"
+          gh pr create \
+            --repo "$GITHUB_REPOSITORY" \
+            --base "$BASE_BRANCH" \
+            --head "$SYNC_BRANCH" \
+            --title "Sync upstream: MHSanaei/3x-ui" \
+            --body-file "$body_file"
+          rm -f "$body_file"
