@@ -103,9 +103,10 @@ type Server struct {
 	api   *controller.APIController
 	ws    *controller.WebSocketController
 
-	xrayService    service.XrayService
-	settingService service.SettingService
-	tgbotService   service.Tgbot
+	xrayService      service.XrayService
+	settingService   service.SettingService
+	tgbotService     service.Tgbot
+	customGeoService *service.CustomGeoService
 
 	wsHub *websocket.Hub
 
@@ -207,14 +208,15 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 
 	store := cookie.NewStore(secret)
 	// Configure default session cookie options, including expiration (MaxAge)
-	if sessionMaxAge, err := s.settingService.GetSessionMaxAge(); err == nil {
-		store.Options(sessions.Options{
-			Path:     "/",
-			MaxAge:   sessionMaxAge * 60, // minutes -> seconds
-			HttpOnly: true,
-			SameSite: http.SameSiteLaxMode,
-		})
+	sessionOptions := sessions.Options{
+		Path:     basePath,
+		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
 	}
+	if sessionMaxAge, err := s.settingService.GetSessionMaxAge(); err == nil && sessionMaxAge > 0 {
+		sessionOptions.MaxAge = sessionMaxAge * 60 // minutes -> seconds
+	}
+	store.Options(sessionOptions)
 	engine.Use(sessions.Sessions("xui-im", store))
 	engine.Use(func(c *gin.Context) {
 		c.Set("base_path", basePath)
@@ -271,7 +273,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 	s.index = controller.NewIndexController(g)
 	s.panel = controller.NewXUIController(g)
 	swaggerEnabled, _ := s.settingService.GetSwaggerEnable()
-	s.api = controller.NewAPIController(g, swaggerEnabled)
+	s.api = controller.NewAPIController(g, s.customGeoService, swaggerEnabled)
 
 	// Initialize WebSocket hub
 	s.wsHub = websocket.NewHub()
@@ -298,6 +300,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 // startTask schedules background jobs (Xray checks, traffic jobs, cron
 // jobs) which the panel relies on for periodic maintenance and monitoring.
 func (s *Server) startTask() {
+	s.customGeoService.EnsureOnStartup()
 	err := s.xrayService.RestartXray(true)
 	if err != nil {
 		logger.Warning("start xray failed:", err)
@@ -328,6 +331,8 @@ func (s *Server) startTask() {
 	s.cron.AddJob("@daily", job.NewClearLogsJob())
 
 	// Inbound traffic reset jobs
+	// Run every hour
+	s.cron.AddJob("@hourly", job.NewPeriodicTrafficResetJob("hourly"))
 	// Run once a day, midnight
 	s.cron.AddJob("@daily", job.NewPeriodicTrafficResetJob("daily"))
 	// Run once a week, midnight between Sat/Sun
@@ -390,6 +395,8 @@ func (s *Server) Start() (err error) {
 	}
 	s.cron = cron.New(cron.WithLocation(loc), cron.WithSeconds())
 	s.cron.Start()
+
+	s.customGeoService = service.NewCustomGeoService()
 
 	engine, err := s.initRouter()
 	if err != nil {
