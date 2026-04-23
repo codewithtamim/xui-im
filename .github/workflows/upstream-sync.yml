@@ -38,7 +38,7 @@ jobs:
           echo "Triggered manually from the Actions tab (Run workflow)."
           if [ -n "$NOTE" ]; then printf 'Note: %s\n' "$NOTE"; fi
 
-      - name: Checkout fork
+      - name: Checkout repository
         uses: actions/checkout@v5
         with:
           ref: ${{ env.BASE_BRANCH }}
@@ -55,15 +55,31 @@ jobs:
           git remote add upstream "$UPSTREAM_URL"
           git fetch upstream "$UPSTREAM_REF"
 
-      - name: Skip if fork already contains upstream
+      - name: Skip if main already contains upstream
         id: up_to_date
         run: |
           if git merge-base --is-ancestor "upstream/${UPSTREAM_REF}" "${BASE_BRANCH}"; then
-            echo "Fork ${BASE_BRANCH} already contains MHSanaei/3x-ui ${UPSTREAM_REF} — nothing to do."
+            echo "${BASE_BRANCH} already contains MHSanaei/3x-ui ${UPSTREAM_REF} — nothing to do."
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
             echo "skip=false" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Detect changes under .github/workflows
+        id: workflow_delta
+        if: steps.up_to_date.outputs.skip != 'true'
+        run: |
+          if git diff --name-only "${BASE_BRANCH}" "upstream/${UPSTREAM_REF}" | grep -qE '^\.github/workflows/'; then
+            echo "touches_workflows=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "touches_workflows=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: SYNC_PAT required when sync touches workflow files
+        if: steps.up_to_date.outputs.skip != 'true' && steps.workflow_delta.outputs.touches_workflows == 'true' && secrets.SYNC_PAT == ''
+        run: |
+          echo '::error::This sync would update .github/workflows (upstream differs from your default branch). The built-in GITHUB_TOKEN cannot push those files. Add a repository secret named SYNC_PAT: create a classic personal access token with the repo and workflow scopes at https://github.com/settings/tokens, or a fine-grained token with read/write on Contents and Workflows. Re-run the workflow after saving the secret.' >&2
+          exit 1
 
       - name: Reset sync branch to upstream
         if: steps.up_to_date.outputs.skip != 'true'
