@@ -4,7 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// XUIController is the main controller for the X-UI panel, managing sub-controllers.
+// XUIController is the main controller for the XUI-IM panel, managing sub-controllers.
 type XUIController struct {
 	BaseController
 
