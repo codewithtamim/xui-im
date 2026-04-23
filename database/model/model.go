@@ -122,7 +122,7 @@ type ApiKey struct {
 	Id          int    `json:"id" gorm:"primaryKey;autoIncrement"`
 	Key         string `json:"key" gorm:"unique"`
 	Description string `json:"description"`
-	ExpiryTime  int64  `json:"expiryTime"`            // unix ms, 0 = indefinite
+	ExpiryTime  int64  `json:"expiryTime"` // unix ms, 0 = indefinite
 	Enabled     bool   `json:"enabled" gorm:"default:true"`
 	CreatedAt   int64  `json:"createdAt"`
 }
