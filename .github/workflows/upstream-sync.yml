@@ -39,7 +39,7 @@ jobs:
           if [ -n "$NOTE" ]; then printf 'Note: %s\n' "$NOTE"; fi
 
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           ref: ${{ env.BASE_BRANCH }}
           fetch-depth: 0
