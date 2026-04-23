@@ -75,11 +75,16 @@ jobs:
             echo "touches_workflows=false" >> "$GITHUB_OUTPUT"
           fi
 
+    
       - name: SYNC_PAT required when sync touches workflow files
-        if: steps.up_to_date.outputs.skip != 'true' && steps.workflow_delta.outputs.touches_workflows == 'true' && secrets.SYNC_PAT == ''
+        if: steps.up_to_date.outputs.skip != 'true' && steps.workflow_delta.outputs.touches_workflows == 'true'
+        env:
+          SYNC_PAT: ${{ secrets.SYNC_PAT }}
         run: |
-          echo '::error::This sync would update .github/workflows (upstream differs from your default branch). The built-in GITHUB_TOKEN cannot push those files. Add a repository secret named SYNC_PAT: create a classic personal access token with the repo and workflow scopes at https://github.com/settings/tokens, or a fine-grained token with read/write on Contents and Workflows. Re-run the workflow after saving the secret.' >&2
-          exit 1
+          if [ -z "$SYNC_PAT" ]; then
+            echo '::error::This sync would update .github/workflows (upstream differs from your default branch). The built-in GITHUB_TOKEN cannot push those files. Add a repository secret named SYNC_PAT: create a classic personal access token with the repo and workflow scopes at https://github.com/settings/tokens, or a fine-grained token with read/write on Contents and Workflows. Re-run the workflow after saving the secret.' >&2
+            exit 1
+          fi
 
       - name: Reset sync branch to upstream
         if: steps.up_to_date.outputs.skip != 'true'
