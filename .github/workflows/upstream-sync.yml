@@ -19,7 +19,6 @@ concurrency:
 permissions:
   contents: write
   pull-requests: write
-  workflows: write
 
 env:
   UPSTREAM_URL: https://github.com/MHSanaei/3x-ui.git
