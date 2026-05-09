@@ -124,7 +124,7 @@ paths:
             $ref: '#/definitions/entity.Msg'
       security:
       - ApiKeyAuth: []
-      summary: Add client to inbound and return config
+      summary: Add client to inbound and return URI link
       tags:
       - Inbound
   /panel/api/inbounds/clientIps/{email}:

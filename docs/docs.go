@@ -90,7 +90,7 @@ const docTemplate = `{
                 "tags": [
                     "Inbound"
                 ],
-                "summary": "Add client to inbound and return config",
+                "summary": "Add client to inbound and return URI link",
                 "responses": {
                     "200": {
                         "description": "OK",

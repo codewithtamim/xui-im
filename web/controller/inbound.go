@@ -5,12 +5,10 @@ import (
 	"fmt"
 	"net"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/codewithtamim/xui-im/v2/database/model"
-	"github.com/codewithtamim/xui-im/v2/util/json_util"
-	"github.com/codewithtamim/xui-im/v2/util/random"
+	"github.com/codewithtamim/xui-im/v2/util/linkgen"
 	"github.com/codewithtamim/xui-im/v2/web/service"
 	"github.com/codewithtamim/xui-im/v2/web/session"
 	"github.com/codewithtamim/xui-im/v2/web/websocket"
@@ -335,8 +333,8 @@ func (a *InboundController) addInboundClient(c *gin.Context) {
 	}
 }
 
-// addInboundClientWithConfig adds a new client to an existing inbound and returns the generated Xray client config.
-// @Summary Add client to inbound and return config
+// addInboundClientWithConfig adds a new client to an existing inbound and returns the generated client URI link.
+// @Summary Add client to inbound and return URI link
 // @Tags Inbound
 // @Accept json
 // @Produce json
@@ -388,328 +386,19 @@ func (a *InboundController) addInboundClientWithConfig(c *gin.Context) {
 		}
 	}
 
-	// Generate config for the first newly added client
+	// Generate URI link for the first newly added client
 	client := newClients[0]
-	configObj := generateClientConfig(inbound, client, host)
+	link := linkgen.GenLink(inbound, client, host)
+	if link == "" {
+		jsonMsg(c, I18nWeb(c, "somethingWentWrong"), fmt.Errorf("failed to generate link"))
+		return
+	}
 
-	jsonMsgObj(c, I18nWeb(c, "pages.inbounds.toasts.inboundClientAddSuccess"), configObj, nil)
+	jsonMsgObj(c, I18nWeb(c, "pages.inbounds.toasts.inboundClientAddSuccess"), link, nil)
 	if needRestart {
 		a.xrayService.SetToNeedRestart()
 	}
 }
-
-// generateClientConfig builds a full Xray client JSON config for a single inbound+client.
-func generateClientConfig(inbound *model.Inbound, client model.Client, host string) map[string]any {
-	// Base client config template (same as sub/default.json)
-	baseConfig := map[string]any{}
-	json.Unmarshal([]byte(defaultClientConfig), &baseConfig)
-
-	stream := processStreamSettings(inbound.StreamSettings)
-
-	// Use request host if inbound listen is empty or wildcard
-	address := inbound.Listen
-	if address == "" || address == "0.0.0.0" || address == "::" || address == "::0" {
-		address = host
-	}
-
-	var proxyOutbound json_util.RawMessage
-	switch inbound.Protocol {
-	case "vmess":
-		proxyOutbound = genVmessOutbound(address, inbound.Port, stream, client)
-	case "vless":
-		proxyOutbound = genVlessOutbound(address, inbound.Port, inbound.Settings, stream, client)
-	case "trojan", "shadowsocks":
-		proxyOutbound = genServerOutbound(address, inbound.Port, inbound.Protocol, inbound.Settings, stream, client)
-	case "hysteria", "hysteria2":
-		proxyOutbound = genHysteriaOutbound(address, inbound.Port, inbound.Protocol, inbound.Settings, inbound.StreamSettings, stream, client)
-	}
-
-	defaultOutbounds := []json_util.RawMessage{
-		json_util.RawMessage(`{"tag":"direct","protocol":"freedom","settings":{"domainStrategy":"AsIs","redirect":""}}`),
-		json_util.RawMessage(`{"tag":"block","protocol":"blackhole","settings":{"response":{"type":"http"}}}`),
-	}
-
-	outbounds := []json_util.RawMessage{proxyOutbound}
-	outbounds = append(outbounds, defaultOutbounds...)
-
-	baseConfig["outbounds"] = outbounds
-	baseConfig["remarks"] = inbound.Remark + " - " + client.Email
-
-	return baseConfig
-}
-
-func processStreamSettings(stream string) map[string]any {
-	var streamSettings map[string]any
-	json.Unmarshal([]byte(stream), &streamSettings)
-	security, _ := streamSettings["security"].(string)
-	switch security {
-	case "tls":
-		streamSettings["tlsSettings"] = processTlsData(streamSettings["tlsSettings"])
-	case "reality":
-		streamSettings["realitySettings"] = processRealityData(streamSettings["realitySettings"])
-	}
-	delete(streamSettings, "sockopt")
-
-	network, _ := streamSettings["network"].(string)
-	switch network {
-	case "tcp":
-		streamSettings["tcpSettings"] = removeAcceptProxy(streamSettings["tcpSettings"])
-	case "ws":
-		streamSettings["wsSettings"] = removeAcceptProxy(streamSettings["wsSettings"])
-	case "httpupgrade":
-		streamSettings["httpupgradeSettings"] = removeAcceptProxy(streamSettings["httpupgradeSettings"])
-	}
-	return streamSettings
-}
-
-func removeAcceptProxy(setting any) map[string]any {
-	netSettings, ok := setting.(map[string]any)
-	if ok {
-		delete(netSettings, "acceptProxyProtocol")
-	}
-	return netSettings
-}
-
-func processTlsData(tData any) map[string]any {
-	tlsMap, _ := tData.(map[string]any)
-	if tlsMap == nil {
-		return map[string]any{}
-	}
-	result := make(map[string]any)
-	result["serverName"] = tlsMap["serverName"]
-	result["alpn"] = tlsMap["alpn"]
-	if settings, ok := tlsMap["settings"].(map[string]any); ok {
-		if fp, ok := settings["fingerprint"].(string); ok {
-			result["fingerprint"] = fp
-		}
-	}
-	return result
-}
-
-func processRealityData(rData any) map[string]any {
-	rMap, _ := rData.(map[string]any)
-	if rMap == nil {
-		return map[string]any{}
-	}
-	result := make(map[string]any)
-	result["show"] = false
-	if settings, ok := rMap["settings"].(map[string]any); ok {
-		result["publicKey"] = settings["publicKey"]
-		result["fingerprint"] = settings["fingerprint"]
-		result["mldsa65Verify"] = settings["mldsa65Verify"]
-	}
-	result["spiderX"] = "/" + random.Seq(15)
-	if shortIds, ok := rMap["shortIds"].([]any); ok && len(shortIds) > 0 {
-		result["shortId"] = shortIds[random.Num(len(shortIds))].(string)
-	} else {
-		result["shortId"] = ""
-	}
-	if serverNames, ok := rMap["serverNames"].([]any); ok && len(serverNames) > 0 {
-		result["serverName"] = serverNames[random.Num(len(serverNames))].(string)
-	} else {
-		result["serverName"] = ""
-	}
-	return result
-}
-
-func genVmessOutbound(address string, port int, stream map[string]any, client model.Client) json_util.RawMessage {
-	outbound := map[string]any{
-		"protocol": "vmess",
-		"tag":      "proxy",
-	}
-	streamBytes, _ := json.MarshalIndent(stream, "", "  ")
-	outbound["streamSettings"] = json.RawMessage(streamBytes)
-
-	users := []map[string]any{
-		{"id": client.ID, "email": client.Email, "security": client.Security},
-	}
-	outbound["settings"] = map[string]any{
-		"vnext": []map[string]any{
-			{"address": address, "port": port, "users": users},
-		},
-	}
-	result, _ := json.MarshalIndent(outbound, "", "  ")
-	return result
-}
-
-func genVlessOutbound(address string, port int, inboundSettings string, stream map[string]any, client model.Client) json_util.RawMessage {
-	outbound := map[string]any{
-		"protocol": "vless",
-		"tag":      "proxy",
-	}
-	streamBytes, _ := json.MarshalIndent(stream, "", "  ")
-	outbound["streamSettings"] = json.RawMessage(streamBytes)
-
-	var settings map[string]any
-	json.Unmarshal([]byte(inboundSettings), &settings)
-	encryption, _ := settings["encryption"].(string)
-
-	user := map[string]any{
-		"id":         client.ID,
-		"level":      8,
-		"encryption": encryption,
-	}
-	if client.Flow != "" {
-		user["flow"] = client.Flow
-	}
-
-	outbound["settings"] = map[string]any{
-		"vnext": []map[string]any{
-			{"address": address, "port": port, "users": []map[string]any{user}},
-		},
-	}
-	result, _ := json.MarshalIndent(outbound, "", "  ")
-	return result
-}
-
-func genServerOutbound(address string, port int, protocol model.Protocol, inboundSettings string, stream map[string]any, client model.Client) json_util.RawMessage {
-	outbound := map[string]any{
-		"protocol": string(protocol),
-		"tag":      "proxy",
-	}
-	streamBytes, _ := json.MarshalIndent(stream, "", "  ")
-	outbound["streamSettings"] = json.RawMessage(streamBytes)
-
-	server := map[string]any{
-		"address":  address,
-		"port":     port,
-		"level":    8,
-		"password": client.Password,
-	}
-
-	if protocol == model.Shadowsocks {
-		var settings map[string]any
-		json.Unmarshal([]byte(inboundSettings), &settings)
-		method, _ := settings["method"].(string)
-		server["method"] = method
-		if strings.HasPrefix(method, "2022") {
-			if serverPassword, ok := settings["password"].(string); ok {
-				server["password"] = fmt.Sprintf("%s:%s", serverPassword, client.Password)
-			}
-		}
-	}
-
-	outbound["settings"] = map[string]any{
-		"servers": []map[string]any{server},
-	}
-	result, _ := json.MarshalIndent(outbound, "", "  ")
-	return result
-}
-
-func genHysteriaOutbound(address string, port int, protocol model.Protocol, inboundSettings string, inboundStream string, stream map[string]any, client model.Client) json_util.RawMessage {
-	outbound := map[string]any{
-		"protocol": string(protocol),
-		"tag":      "proxy",
-	}
-
-	var settings map[string]any
-	json.Unmarshal([]byte(inboundSettings), &settings)
-	version, _ := settings["version"].(float64)
-
-	outbound["settings"] = map[string]any{
-		"version": int(version),
-		"address": address,
-		"port":    port,
-	}
-
-	var s map[string]any
-	json.Unmarshal([]byte(inboundStream), &s)
-	hyStream, _ := s["hysteriaSettings"].(map[string]any)
-	outHyStream := map[string]any{
-		"version": int(version),
-		"auth":    client.Auth,
-	}
-	if hyStream != nil {
-		if udpIdleTimeout, ok := hyStream["udpIdleTimeout"].(float64); ok {
-			outHyStream["udpIdleTimeout"] = int(udpIdleTimeout)
-		}
-		if finalmask, ok := hyStream["finalmask"].(map[string]any); ok {
-			stream["finalmask"] = finalmask
-		}
-	}
-	stream["hysteriaSettings"] = outHyStream
-	stream["network"] = "hysteria"
-	stream["security"] = "tls"
-
-	streamBytes, _ := json.MarshalIndent(stream, "", "  ")
-	outbound["streamSettings"] = json.RawMessage(streamBytes)
-
-	result, _ := json.MarshalIndent(outbound, "", "  ")
-	return result
-}
-
-// defaultClientConfig is the standard Xray client template (same as sub/default.json).
-const defaultClientConfig = `{
-  "remarks": "",
-  "dns": {
-    "tag": "dns_out",
-    "queryStrategy": "UseIP",
-    "servers": [
-      {
-        "address": "8.8.8.8",
-        "skipFallback": false
-      }
-    ]
-  },
-  "inbounds": [
-    {
-      "port": 10808,
-      "protocol": "mixed",
-      "settings": {
-        "auth": "noauth",
-        "udp": true,
-        "userLevel": 8
-      },
-      "sniffing": {
-        "destOverride": [
-          "http",
-          "tls",
-          "quic",
-          "fakedns"
-        ],
-        "enabled": true
-      },
-      "tag": "mixed"
-    },
-    {
-      "port": 10809,
-      "protocol": "http",
-      "settings": {
-        "userLevel": 8
-      },
-      "tag": "http"
-    }
-  ],
-  "log": {
-    "loglevel": "warning"
-  },
-  "outbounds": [],
-  "policy": {
-    "levels": {
-      "8": {
-        "connIdle": 300,
-        "downlinkOnly": 1,
-        "handshake": 4,
-        "uplinkOnly": 1
-      }
-    },
-    "system": {
-      "statsOutboundUplink": true,
-      "statsOutboundDownlink": true
-    }
-  },
-  "routing": {
-    "domainStrategy": "AsIs",
-    "rules": [
-      {
-        "type": "field",
-        "network": "tcp,udp",
-        "outboundTag": "proxy"
-      }
-    ]
-  },
-  "stats": {}
-}`
 
 // copyInboundClients copies clients from source inbound to target inbound.
 func (a *InboundController) copyInboundClients(c *gin.Context) {
