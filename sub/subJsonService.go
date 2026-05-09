@@ -163,6 +163,18 @@ func (s *SubJsonService) GetJson(subId string, host string) (string, string, err
 	return string(finalJson), header, nil
 }
 
+func (s *SubJsonService) GetConfigForClient(inbound *model.Inbound, client model.Client, host string) []byte {
+	configs := s.getConfig(inbound, client, host)
+	if len(configs) == 0 {
+		return nil
+	}
+	if len(configs) == 1 {
+		return configs[0]
+	}
+	result, _ := json.MarshalIndent(configs, "", "  ")
+	return result
+}
+
 func (s *SubJsonService) getConfig(inbound *model.Inbound, client model.Client, host string) []json_util.RawMessage {
 	var newJsonArray []json_util.RawMessage
 	stream := s.streamData(inbound.StreamSettings)
