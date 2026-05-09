@@ -111,6 +111,22 @@ paths:
       summary: Add client to inbound
       tags:
       - Inbound
+  /panel/api/inbounds/addClientWithConfig:
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/entity.Msg'
+      security:
+      - ApiKeyAuth: []
+      summary: Add client to inbound and return config
+      tags:
+      - Inbound
   /panel/api/inbounds/clientIps/{email}:
     post:
       parameters:

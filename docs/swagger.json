@@ -67,6 +67,33 @@
                 }
             }
         },
+        "/panel/api/inbounds/addClientWithConfig": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Inbound"
+                ],
+                "summary": "Add client to inbound and return config",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/entity.Msg"
+                        }
+                    }
+                }
+            }
+        },
         "/panel/api/inbounds/clientIps/{email}": {
             "post": {
                 "security": [
