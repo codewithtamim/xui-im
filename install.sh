@@ -782,19 +782,78 @@ config_after_install() {
     ${xui_folder}/x-ui migrate
 }
 
+# Fetch the latest release tag from GitHub with retry and optional GITHUB_TOKEN support
+fetch_latest_version() {
+    local api_url="https://api.github.com/repos/codewithtamim/xui-im/releases/latest"
+    local token="${GITHUB_TOKEN:-}"
+    local max_retries=3
+    local retry_delay=3
+    local i=0
+    local tag_version=""
+
+    while [[ $i -lt $max_retries ]]; do
+        local http_code=""
+        local response=""
+        local curl_opts="-sL -w \"\\n%{http_code}\""
+
+        if [[ -n "$token" ]]; then
+            response=$(eval "curl ${curl_opts} -H \"Authorization: Bearer ${token}\" \"${api_url}\"" 2>/dev/null)
+        else
+            response=$(eval "curl ${curl_opts} \"${api_url}\"" 2>/dev/null)
+        fi
+
+        http_code=$(echo "$response" | tail -n1 | tr -d '"')
+        local body
+        body=$(echo "$response" | sed '$d')
+
+        if [[ "$http_code" == "200" ]]; then
+            tag_version=$(echo "$body" | grep '"tag_name"' | head -n1 | sed -E 's/.*"tag_name"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/')
+            if [[ -n "$tag_version" ]]; then
+                echo "$tag_version"
+                return 0
+            fi
+        elif [[ "$http_code" == "403" || "$http_code" == "429" ]]; then
+            echo -e "${yellow}GitHub API rate limit hit (HTTP ${http_code}).${plain}" >&2
+            if [[ -z "$token" ]]; then
+                echo -e "${yellow}Tip: Set a GITHUB_TOKEN environment variable to avoid rate limits.${plain}" >&2
+            fi
+        else
+            echo -e "${yellow}Failed to fetch version (HTTP ${http_code:-unknown}), retrying...${plain}" >&2
+        fi
+
+        i=$((i + 1))
+        if [[ $i -lt $max_retries ]]; then
+            sleep $retry_delay
+        fi
+    done
+
+    # Final fallback: try IPv4-only without token
+    local response
+    response=$(curl -4 -sL -w "\n%{http_code}" "${api_url}" 2>/dev/null)
+    local http_code
+    http_code=$(echo "$response" | tail -n1 | tr -d '"')
+    local body
+    body=$(echo "$response" | sed '$d')
+    if [[ "$http_code" == "200" ]]; then
+        tag_version=$(echo "$body" | grep '"tag_name"' | head -n1 | sed -E 's/.*"tag_name"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/')
+        if [[ -n "$tag_version" ]]; then
+            echo "$tag_version"
+            return 0
+        fi
+    fi
+
+    return 1
+}
+
 install_x-ui() {
     cd ${xui_folder%/x-ui}/
-    
+
     # Download resources
     if [ $# == 0 ]; then
-        tag_version=$(curl -Ls "https://api.github.com/repos/codewithtamim/xui-im/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+        tag_version=$(fetch_latest_version)
         if [[ ! -n "$tag_version" ]]; then
-            echo -e "${yellow}Trying to fetch version with IPv4...${plain}"
-            tag_version=$(curl -4 -Ls "https://api.github.com/repos/codewithtamim/xui-im/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-            if [[ ! -n "$tag_version" ]]; then
-                echo -e "${red}Failed to fetch x-ui version, it may be due to GitHub API restrictions, please try it later${plain}"
-                exit 1
-            fi
+            echo -e "${red}Failed to fetch x-ui version, it may be due to GitHub API restrictions, please try it later${plain}"
+            exit 1
         fi
         echo -e "Got x-ui latest version: ${tag_version}, beginning the installation..."
         curl -4fLRo ${xui_folder}-linux-$(arch).tar.gz https://github.com/codewithtamim/xui-im/releases/download/${tag_version}/x-ui-linux-$(arch).tar.gz
