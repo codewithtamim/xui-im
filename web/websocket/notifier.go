@@ -101,3 +101,19 @@ func BroadcastInvalidate(dataType MessageType) {
 		hub.broadcastInvalidate(dataType)
 	}
 }
+
+// BroadcastNodes broadcasts node list update to all connected clients
+func BroadcastNodes(nodes any) {
+	hub := GetHub()
+	if hub != nil {
+		hub.Broadcast(MessageTypeInbounds, nodes) // Reuse Inbounds type for nodes
+	}
+}
+
+// BroadcastClientStats broadcasts client statistics update to all connected clients
+func BroadcastClientStats(stats any) {
+	hub := GetHub()
+	if hub != nil {
+		hub.Broadcast(MessageTypeTraffic, stats)
+	}
+}

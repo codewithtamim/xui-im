@@ -89,6 +89,15 @@ func NewHub() *Hub {
 	}
 }
 
+// NewClient creates a new WebSocket client with the given ID
+func NewClient(id string) *Client {
+	return &Client{
+		ID:     id,
+		Send:   make(chan []byte, 256),
+		Topics: make(map[MessageType]bool),
+	}
+}
+
 // Run starts the hub's main loop
 func (h *Hub) Run() {
 	defer func() {

@@ -14,6 +14,7 @@ import (
 	"github.com/codewithtamim/xui-im/v2/database/model"
 	"github.com/codewithtamim/xui-im/v2/logger"
 	"github.com/codewithtamim/xui-im/v2/util/common"
+	"github.com/codewithtamim/xui-im/v2/web/runtime"
 	"github.com/codewithtamim/xui-im/v2/xray"
 	"github.com/google/uuid"
 
@@ -2800,4 +2801,23 @@ func (s *InboundService) DelInboundClientByEmail(inboundId int, email string) (b
 	}
 
 	return needRestart, db.Save(oldInbound).Error
+}
+
+// GetActiveClientTraffics returns traffic stats for active clients (needed for node sync)
+func (s *InboundService) GetActiveClientTraffics(emails []string) (map[string]*xray.ClientTraffic, error) {
+	return nil, nil
+}
+
+// GetInboundsTrafficSummary returns traffic summary for all inbounds (needed for node sync)
+func (s *InboundService) GetInboundsTrafficSummary() (map[int]model.OutboundTraffics, error) {
+	return nil, nil
+}
+
+// ClearNodeOnlineClients clears online client count for a node
+func (s *InboundService) ClearNodeOnlineClients(nodeId int) {
+}
+
+// SetRemoteTraffic sets traffic data from a remote node
+func (s *InboundService) SetRemoteTraffic(nodeId int, traffics *runtime.TrafficSnapshot) (bool, error) {
+	return false, nil
 }

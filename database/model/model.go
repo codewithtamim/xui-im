@@ -66,6 +66,9 @@ type Inbound struct {
 	StreamSettings string   `json:"streamSettings" form:"streamSettings"`
 	Tag            string   `json:"tag" form:"tag" gorm:"unique"`
 	Sniffing       string   `json:"sniffing" form:"sniffing"`
+
+	// NodeID points at the remote panel (Node) where this inbound's xray runs
+	NodeID *int `json:"nodeId,omitempty" form:"nodeId" gorm:"index"`
 }
 
 // OutboundTraffics tracks traffic statistics for Xray outbound connections.
@@ -125,6 +128,29 @@ type ApiKey struct {
 	ExpiryTime  int64  `json:"expiryTime"` // unix ms, 0 = indefinite
 	Enabled     bool   `json:"enabled" gorm:"default:true"`
 	CreatedAt   int64  `json:"createdAt"`
+}
+
+// Node represents a remote 3x-ui panel registered with the central panel.
+type Node struct {
+	Id       int    `json:"id" form:"id" gorm:"primaryKey;autoIncrement"`
+	Name     string `json:"name" form:"name" gorm:"uniqueIndex"`
+	Remark   string `json:"remark" form:"remark"`
+	Scheme   string `json:"scheme" form:"scheme"`
+	Address  string `json:"address" form:"address"`
+	Port     int    `json:"port" form:"port"`
+	BasePath string `json:"basePath" form:"basePath"`
+	ApiToken string `json:"apiToken" form:"apiToken"`
+	Enable   bool   `json:"enable" form:"enable" gorm:"default:true"`
+	Status        string  `json:"status" gorm:"default:unknown"`
+	LastHeartbeat int64   `json:"lastHeartbeat"`
+	LatencyMs     int     `json:"latencyMs"`
+	XrayVersion   string  `json:"xrayVersion"`
+	CpuPct        float64 `json:"cpuPct"`
+	MemPct        float64 `json:"memPct"`
+	UptimeSecs    uint64  `json:"uptimeSecs"`
+	LastError     string  `json:"lastError"`
+	CreatedAt int64 `json:"createdAt" gorm:"autoCreateTime"`
+	UpdatedAt int64 `json:"updatedAt" gorm:"autoUpdateTime"`
 }
 
 // CustomGeoResource stores user-defined GeoSite/GeoIP dat sources.

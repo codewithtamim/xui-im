@@ -36,7 +36,7 @@ import (
 	_ "github.com/codewithtamim/xui-im/v2/docs"
 )
 
-//go:embed assets
+//go:embed dist
 var assetsFS embed.FS
 
 //go:embed html/*
