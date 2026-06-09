@@ -1,7 +1,7 @@
 package service
 
 import (
-	"path/filepath"
+	"os"
 	"sync"
 	"testing"
 
@@ -15,16 +15,19 @@ import (
 // binary so a stray warning from gorm doesn't blow up on a nil logger.
 var portConflictLoggerOnce sync.Once
 
-// setupConflictDB wires a temp sqlite db so checkPortConflict can read
-// real candidates. closes the db before t.TempDir cleans up so windows
-// doesn't refuse to remove the file.
+// setupConflictDB connects to PostgreSQL so checkPortConflict can read
+// real candidates. Skips the test if no PostgreSQL connection is available.
 func setupConflictDB(t *testing.T) {
 	t.Helper()
+
+	dsn := os.Getenv("XUI_TEST_DB_DSN")
+	if dsn == "" {
+		t.Skip("Skipping integration test: set XUI_TEST_DB_DSN to a PostgreSQL connection string")
+	}
+
 	portConflictLoggerOnce.Do(func() { xuilogger.InitLogger(logging.ERROR) })
 
-	dbDir := t.TempDir()
-	t.Setenv("XUI_DB_FOLDER", dbDir)
-	if err := database.InitDB(filepath.Join(dbDir, "3x-ui.db")); err != nil {
+	if err := database.InitDB(dsn); err != nil {
 		t.Fatalf("InitDB: %v", err)
 	}
 	t.Cleanup(func() {

@@ -5,7 +5,6 @@ package config
 import (
 	_ "embed"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -83,21 +82,67 @@ func getBaseDir() string {
 	return exeDir
 }
 
-// GetDBFolderPath returns the path to the database folder based on environment variables or platform defaults.
-func GetDBFolderPath() string {
-	dbFolderPath := os.Getenv("XUI_DB_FOLDER")
-	if dbFolderPath != "" {
-		return dbFolderPath
-	}
-	if runtime.GOOS == "windows" {
-		return getBaseDir()
-	}
-	return "/etc/x-ui"
+// GetDBDSN returns the PostgreSQL connection string.
+func GetDBDSN() string {
+	return GetPostgresDSN()
 }
 
-// GetDBPath returns the full path to the database file.
-func GetDBPath() string {
-	return fmt.Sprintf("%s/%s.db", GetDBFolderPath(), GetName())
+// GetPostgresDSN builds a PostgreSQL connection string from environment variables.
+// Supported env vars: XUI_DB_HOST, XUI_DB_PORT, XUI_DB_USER, XUI_DB_PASSWORD,
+// XUI_DB_NAME, XUI_DB_SSL_MODE.
+func GetPostgresDSN() string {
+	host := os.Getenv("XUI_DB_HOST")
+	if host == "" {
+		host = "localhost"
+	}
+	port := os.Getenv("XUI_DB_PORT")
+	if port == "" {
+		port = "5432"
+	}
+	user := os.Getenv("XUI_DB_USER")
+	if user == "" {
+		user = "postgres"
+	}
+	password := os.Getenv("XUI_DB_PASSWORD")
+	if password == "" {
+		password = "postgres"
+	}
+	dbname := os.Getenv("XUI_DB_NAME")
+	if dbname == "" {
+		dbname = "xui"
+	}
+	sslmode := os.Getenv("XUI_DB_SSL_MODE")
+	if sslmode == "" {
+		sslmode = "disable"
+	}
+	return fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		host, port, user, password, dbname, sslmode)
+}
+
+// GetPostgresEnv returns PostgreSQL connection parameters as individual values
+// for use with command-line tools like pg_dump.
+func GetPostgresEnv() (host, port, user, password, dbname string) {
+	host = os.Getenv("XUI_DB_HOST")
+	if host == "" {
+		host = "localhost"
+	}
+	port = os.Getenv("XUI_DB_PORT")
+	if port == "" {
+		port = "5432"
+	}
+	user = os.Getenv("XUI_DB_USER")
+	if user == "" {
+		user = "postgres"
+	}
+	password = os.Getenv("XUI_DB_PASSWORD")
+	if password == "" {
+		password = "postgres"
+	}
+	dbname = os.Getenv("XUI_DB_NAME")
+	if dbname == "" {
+		dbname = "xui"
+	}
+	return
 }
 
 // GetLogFolder returns the path to the log folder based on environment variables or platform defaults.
@@ -112,45 +157,4 @@ func GetLogFolder() string {
 	return "/var/log/x-ui"
 }
 
-func copyFile(src, dst string) error {
-	in, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer in.Close()
 
-	out, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	_, err = io.Copy(out, in)
-	if err != nil {
-		return err
-	}
-
-	return out.Sync()
-}
-
-func init() {
-	if runtime.GOOS != "windows" {
-		return
-	}
-	if os.Getenv("XUI_DB_FOLDER") != "" {
-		return
-	}
-	oldDBFolder := "/etc/x-ui"
-	oldDBPath := fmt.Sprintf("%s/%s.db", oldDBFolder, GetName())
-	newDBFolder := GetDBFolderPath()
-	newDBPath := fmt.Sprintf("%s/%s.db", newDBFolder, GetName())
-	_, err := os.Stat(newDBPath)
-	if err == nil {
-		return // new exists
-	}
-	_, err = os.Stat(oldDBPath)
-	if os.IsNotExist(err) {
-		return // old does not exist
-	}
-	_ = copyFile(oldDBPath, newDBPath) // ignore error
-}
