@@ -19,21 +19,22 @@ import (
 // log a warning. otherwise log.Warningf panics on a nil logger.
 var loggerInitOnce sync.Once
 
-// setupIntegrationDB wires a temp sqlite db and log folder so
-// updateInboundClientIps can run end to end. closes the db before
-// TempDir cleanup so windows doesn't complain about the file being in
-// use.
+// setupIntegrationDB connects to PostgreSQL and configures logging so
+// updateInboundClientIps can run end to end. Skips the test if no
+// PostgreSQL connection is available.
 func setupIntegrationDB(t *testing.T) {
 	t.Helper()
+
+	dsn := os.Getenv("XUI_TEST_DB_DSN")
+	if dsn == "" {
+		t.Skip("Skipping integration test: set XUI_TEST_DB_DSN to a PostgreSQL connection string")
+	}
 
 	loggerInitOnce.Do(func() {
 		xuilogger.InitLogger(logging.ERROR)
 	})
 
-	dbDir := t.TempDir()
 	logDir := t.TempDir()
-
-	t.Setenv("XUI_DB_FOLDER", dbDir)
 	t.Setenv("XUI_LOG_FOLDER", logDir)
 
 	// updateInboundClientIps calls log.SetOutput on the package global,
@@ -45,10 +46,9 @@ func setupIntegrationDB(t *testing.T) {
 		log.SetFlags(origLogFlags)
 	})
 
-	if err := database.InitDB(filepath.Join(dbDir, "xui-im.db")); err != nil {
+	if err := database.InitDB(dsn); err != nil {
 		t.Fatalf("database.InitDB failed: %v", err)
 	}
-	// LIFO cleanup order: this runs before t.TempDir's own cleanup.
 	t.Cleanup(func() {
 		if err := database.CloseDB(); err != nil {
 			t.Logf("database.CloseDB warning: %v", err)

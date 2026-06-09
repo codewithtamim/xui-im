@@ -15,6 +15,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"regexp"
 	"slices"
 	"strconv"
@@ -3634,40 +3635,43 @@ func (t *Tgbot) onlineClients(chatId int64, messageID ...int) {
 	}
 }
 
-// sendBackup sends a backup of the database and configuration files.
+// sendBackup sends a backup of the database (SQL dump) and configuration files.
 func (t *Tgbot) sendBackup(chatId int64) {
 	output := t.I18nBot("tgbot.messages.backupTime", "Time=="+time.Now().Format("2006-01-02 15:04:05"))
 	t.SendMsgToTgbot(chatId, output)
 
-	// Update by manually trigger a checkpoint operation
-	err := database.Checkpoint()
+	// Generate SQL dump
+	dump, err := database.GenerateSQLDump()
 	if err != nil {
-		logger.Error("Error in trigger a checkpoint operation: ", err)
-	}
-
-	// Send database backup
-	file, err := os.Open(config.GetDBPath())
-	if err == nil {
-		defer file.Close()
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-		document := tu.Document(
-			tu.ID(chatId),
-			tu.File(file),
-		)
-		_, err = bot.SendDocument(ctx, document)
-		if err != nil {
-			logger.Error("Error in uploading backup: ", err)
-		}
+		logger.Error("Error generating SQL dump for backup: ", err)
 	} else {
-		logger.Error("Error in opening db file for backup: ", err)
+		backupPath := filepath.Join(os.TempDir(), fmt.Sprintf("xui-backup-%d.sql", time.Now().Unix()))
+		if err := os.WriteFile(backupPath, dump, 0644); err != nil {
+			logger.Error("Error writing backup file: ", err)
+		} else {
+			defer os.Remove(backupPath)
+			file, err := os.Open(backupPath)
+			if err == nil {
+				ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+				defer cancel()
+				document := tu.Document(
+					tu.ID(chatId),
+					tu.File(file),
+				)
+				_, err = bot.SendDocument(ctx, document)
+				if err != nil {
+					logger.Error("Error in uploading backup: ", err)
+				}
+				file.Close()
+			}
+		}
 	}
 
 	// Small delay between file sends
 	time.Sleep(500 * time.Millisecond)
 
 	// Send config.json backup
-	file, err = os.Open(xray.GetConfigPath())
+	file, err := os.Open(xray.GetConfigPath())
 	if err == nil {
 		defer file.Close()
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
